@@ -69,6 +69,16 @@ options:
      - swap size in MB
     default: 512
     type: integer
+  stack_script_id:
+    description:
+     - The ID of the StackScript to use
+    default: null
+    type: integer
+  stack_script_udf_responses:
+    description:
+     - JSON encoded name/value pairs, answering the StackScript's User Defined Fields
+    default: null
+    type: string
   distribution:
     description:
      - distribution to use for the instance (Linode Distribution)
@@ -214,8 +224,9 @@ def getInstanceDetails(api, server):
                                         'ip_id': ip['IPADDRESSID']})
     return instance
 
-def linodeServers(module, api, state, name, plan, distribution, datacenter, linode_id, 
-                  payment_term, password, ssh_pub_key, swap, wait, wait_timeout):
+def linodeServers(module, api, state, name, plan, stack_script_id, stack_script_udf_responses,
+                  distribution, datacenter, linode_id, payment_term, password, ssh_pub_key,
+                  swap, wait, wait_timeout):
     instances = []
     changed = False
     new_server = False   
@@ -276,15 +287,21 @@ def linodeServers(module, api, state, name, plan, distribution, datacenter, lino
                     swap = 512
                 # Create data disk
                 size = servers[0]['TOTALHD'] - swap
-                if ssh_pub_key:
-                    res = api.linode_disk_createfromdistribution(
-                              LinodeId=linode_id, DistributionID=distribution, 
-                              rootPass=password, rootSSHKey=ssh_pub_key,
-                              Label='%s data disk (lid: %s)' % (name, linode_id), Size=size)
+                if not ssh_pub_key or ssh_pub_key == "None":
+                  ssh_pub_key=''
+
+                if stack_script_id:
+                    res = api.linode_disk_createfromstackscript(
+                          LinodeId=linode_id, DistributionID=distribution,
+                          StackScriptID=stack_script_id, StackScriptUDFResponses=stack_script_udf_responses,
+                          rootPass=password, rootSSHKey=ssh_pub_key,
+                          Label='%s data disk (lid: %s)' % (name, linode_id), Size=size)
                 else:
                     res = api.linode_disk_createfromdistribution(
-                              LinodeId=linode_id, DistributionID=distribution, rootPass=password, 
-                              Label='%s data disk (lid: %s)' % (name, linode_id), Size=size)
+                          LinodeId=linode_id, DistributionID=distribution,
+                          rootPass=password, rootSSHKey=ssh_pub_key,
+                          Label='%s data disk (lid: %s)' % (name, linode_id), Size=size)
+
                 jobs.append(res['JobID'])
                 # Create SWAP disk
                 res = api.linode_disk_create(LinodeId=linode_id, Type='swap', 
@@ -446,6 +463,8 @@ def main():
             api_key = dict(),
             name = dict(type='str'),
             plan = dict(type='int'),
+            stack_script_id = dict(type='int'),
+            stack_script_udf_responses = dict(type='str'),
             distribution = dict(type='int'),
             datacenter = dict(type='int'),
             linode_id = dict(type='int', aliases=['lid']),
@@ -467,6 +486,8 @@ def main():
     api_key = module.params.get('api_key')
     name = module.params.get('name')
     plan = module.params.get('plan')
+    stack_script_id = module.params.get('stack_script_id')
+    stack_script_udf_responses = module.params.get('stack_script_udf_responses')
     distribution = module.params.get('distribution')
     datacenter = module.params.get('datacenter')
     linode_id = module.params.get('linode_id')
@@ -491,8 +512,9 @@ def main():
     except Exception as e:
         module.fail_json(msg = '%s' % e.value[0]['ERRORMESSAGE'])
 
-    linodeServers(module, api, state, name, plan, distribution, datacenter, linode_id, 
-                 payment_term, password, ssh_pub_key, swap, wait, wait_timeout)
+    linodeServers(module, api, state, name, plan, stack_script_id, stack_script_udf_responses,
+                 distribution, datacenter, linode_id, payment_term, password, ssh_pub_key,
+                 swap, wait, wait_timeout)
 
 # import module snippets
 from ansible.module_utils.basic import *
