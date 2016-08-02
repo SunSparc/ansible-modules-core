@@ -78,7 +78,7 @@ options:
     description:
      - JSON encoded name/value pairs, answering the StackScript's User Defined Fields
     default: null
-    type: string
+    type: json
   distribution:
     description:
      - distribution to use for the instance (Linode Distribution)
@@ -464,7 +464,7 @@ def main():
             name = dict(type='str'),
             plan = dict(type='int'),
             stack_script_id = dict(type='int'),
-            stack_script_udf_responses = dict(type='str'),
+            stack_script_udf_responses = dict(type='json'),
             distribution = dict(type='int'),
             datacenter = dict(type='int'),
             linode_id = dict(type='int', aliases=['lid']),
