@@ -74,11 +74,13 @@ options:
      - The ID of the StackScript to use
     default: null
     type: integer
+    version_added: "2.2"
   stack_script_udf_responses:
     description:
      - JSON encoded name/value pairs, answering the StackScript's User Defined Fields
     default: null
     type: json
+    version_added: "2.2"
   distribution:
     description:
      - distribution to use for the instance (Linode Distribution)
